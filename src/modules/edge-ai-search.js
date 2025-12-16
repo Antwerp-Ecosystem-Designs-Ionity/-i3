@@ -43,6 +43,12 @@ class EdgeAISearch {
         return this.simulateEdgeSearch(query);
       }
 
+      // Validate API key format (basic validation)
+      if (typeof this.apiKey !== 'string' || this.apiKey.length < 10) {
+        console.warn('Invalid API key format - using simulation mode');
+        return this.simulateEdgeSearch(query);
+      }
+
       // Make actual API call to Bing Search API (Edge's backend)
       const response = await axios.get(
         `${this.bingApiEndpoint}/search`,
@@ -55,7 +61,15 @@ class EdgeAISearch {
           headers: {
             'Ocp-Apim-Subscription-Key': this.apiKey
           },
-          timeout: 10000
+          timeout: 10000,
+          // Add rate limiting hint
+          validateStatus: (status) => {
+            if (status === 429) {
+              console.warn('Rate limit exceeded for Edge AI Search');
+              return false;
+            }
+            return status >= 200 && status < 300;
+          }
         }
       );
 

@@ -43,6 +43,12 @@ class CloudSearchIntegration {
         return this.simulateSearch(query);
       }
 
+      // Validate API key format (basic validation)
+      if (typeof this.apiKey !== 'string' || this.apiKey.length < 10) {
+        console.warn('Invalid API key format - using simulation mode');
+        return this.simulateSearch(query);
+      }
+
       // Make actual API call to CloudSearch
       const response = await axios.post(
         `${this.apiEndpoint}/query/search`,
@@ -57,7 +63,15 @@ class CloudSearchIntegration {
             'Authorization': `Bearer ${this.apiKey}`,
             'Content-Type': 'application/json'
           },
-          timeout: 10000
+          timeout: 10000,
+          // Add rate limiting hint
+          validateStatus: (status) => {
+            if (status === 429) {
+              console.warn('Rate limit exceeded for CloudSearch');
+              return false;
+            }
+            return status >= 200 && status < 300;
+          }
         }
       );
 

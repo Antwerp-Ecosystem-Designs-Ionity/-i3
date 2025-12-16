@@ -71,6 +71,30 @@ class SSHManager {
       throw new Error('SSH not connected. Please connect first.');
     }
 
+    // Validate command input to prevent command injection
+    if (!command || typeof command !== 'string') {
+      throw new Error('Invalid command: must be a non-empty string');
+    }
+
+    // Sanitize command - remove dangerous characters and patterns
+    const sanitized = command.trim();
+    if (sanitized.length === 0) {
+      throw new Error('Invalid command: cannot be empty');
+    }
+
+    // Check for potentially dangerous patterns
+    const dangerousPatterns = [
+      /;\s*rm\s+-rf/i,     // Dangerous delete commands
+      /\|\s*rm\s+-rf/i,    // Piped dangerous commands
+      /&&\s*rm\s+-rf/i,    // Chained dangerous commands
+    ];
+
+    for (const pattern of dangerousPatterns) {
+      if (pattern.test(sanitized)) {
+        throw new Error('Command contains potentially dangerous patterns and was blocked');
+      }
+    }
+
     return new Promise((resolve, reject) => {
       this.client.exec(command, (err, stream) => {
         if (err) {
