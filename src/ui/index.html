@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src *;">
+    <title>ƐÏ3 Browser - IONITY</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Browser Header -->
+        <header class="browser-header">
+            <div class="logo-section">
+                <div class="logo">ƐÏ3</div>
+                <span class="tagline">Break the Cycle</span>
+            </div>
+            <div class="search-bar-container">
+                <input type="text" id="searchBar" class="search-bar" placeholder="Search with CloudSearch or Edge AI..." autocomplete="off">
+                <div class="search-actions">
+                    <button id="cloudSearchBtn" class="search-btn" title="Search with Google CloudSearch">
+                        <span class="icon">☁️</span> CloudSearch
+                    </button>
+                    <button id="edgeAIBtn" class="search-btn" title="Search with Edge AI">
+                        <span class="icon">🤖</span> Edge AI
+                    </button>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button id="sshBtn" class="action-btn" title="SSH Backend">
+                    <span class="icon">🔐</span> SSH
+                </button>
+                <button id="infoBtn" class="action-btn" title="Browser Info">
+                    <span class="icon">ℹ️</span> Info
+                </button>
+            </div>
+        </header>
+
+        <!-- Navigation Bar -->
+        <nav class="nav-bar">
+            <div class="nav-controls">
+                <button id="backBtn" class="nav-btn" title="Back">←</button>
+                <button id="forwardBtn" class="nav-btn" title="Forward">→</button>
+                <button id="refreshBtn" class="nav-btn" title="Refresh">⟳</button>
+            </div>
+            <div class="url-bar-container">
+                <span class="protocol">https://</span>
+                <input type="text" id="urlBar" class="url-bar" placeholder="Enter URL or search..." autocomplete="off">
+                <button id="goBtn" class="go-btn">Go</button>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <div id="webview-container" class="webview-container">
+                <webview id="webview" 
+                         src="about:blank" 
+                         class="webview"
+                         allowpopups
+                         useragent="ƐÏ3-Browser/1.0 (IONITY) Chrome/120.0.0.0">
+                </webview>
+            </div>
+            
+            <!-- Search Results Panel -->
+            <div id="searchResults" class="search-results hidden">
+                <div class="results-header">
+                    <h3>Search Results</h3>
+                    <button id="closeResultsBtn" class="close-btn">✕</button>
+                </div>
+                <div id="resultsContent" class="results-content">
+                    <!-- Results will be populated here -->
+                </div>
+            </div>
+
+            <!-- Welcome Screen -->
+            <div id="welcomeScreen" class="welcome-screen">
+                <div class="welcome-content">
+                    <h1 class="welcome-title">ƐÏ3 Browser</h1>
+                    <p class="welcome-subtitle">Break the Cycle | New AÏoT Browser for all</p>
+                    <div class="features">
+                        <div class="feature">
+                            <div class="feature-icon">☁️</div>
+                            <h3>CloudSearch Integration</h3>
+                            <p>Powered by Google CloudSearch for enterprise-grade search</p>
+                        </div>
+                        <div class="feature">
+                            <div class="feature-icon">🤖</div>
+                            <h3>Edge AI Search</h3>
+                            <p>AI-enhanced search with Microsoft Edge technology</p>
+                        </div>
+                        <div class="feature">
+                            <div class="feature-icon">🔐</div>
+                            <h3>SSH Backend</h3>
+                            <p>SSH backed and supported for secure operations</p>
+                        </div>
+                    </div>
+                    <footer class="welcome-footer">
+                        <p><strong>IONITY (PTY) LTD</strong></p>
+                        <p>Author: Johan Wilhelm van Antwerp and R1 DS</p>
+                        <p>2018-2025+ | Centurion, South Africa</p>
+                        <p class="motto">ANYTHING IS POSSIBLE WITH GOD ❤️</p>
+                        <p class="trademark">ƐÏ3 | AEDI | ƐÏ3 | AMPIES | 986 AED | 6ƐÏ39 | NeTzeR</p>
+                    </footer>
+                </div>
+            </div>
+        </main>
+
+        <!-- SSH Modal -->
+        <div id="sshModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>SSH Backend Connection</h3>
+                    <button class="close-btn" onclick="closeSSHModal()">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="sshHost">Host:</label>
+                        <input type="text" id="sshHost" placeholder="example.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="sshPort">Port:</label>
+                        <input type="number" id="sshPort" value="22">
+                    </div>
+                    <div class="form-group">
+                        <label for="sshUsername">Username:</label>
+                        <input type="text" id="sshUsername" placeholder="username">
+                    </div>
+                    <div class="form-group">
+                        <label for="sshPassword">Password:</label>
+                        <input type="password" id="sshPassword" placeholder="password">
+                    </div>
+                    <button id="sshConnectBtn" class="primary-btn">Connect</button>
+                    <div id="sshStatus" class="status-message"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info Modal -->
+        <div id="infoModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>About ƐÏ3 Browser</h3>
+                    <button class="close-btn" onclick="closeInfoModal()">✕</button>
+                </div>
+                <div class="modal-body" id="infoContent">
+                    <!-- Info will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>
