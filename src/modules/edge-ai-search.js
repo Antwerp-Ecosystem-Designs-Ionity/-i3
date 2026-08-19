@@ -6,13 +6,32 @@
  */
 
 const axios = require('axios');
+const SemanticCacheManager = require('./semantic-cache-manager');
 
 class EdgeAISearch {
-  constructor() {
+  /**
+   * @param {Object} options Configuration options
+   * @param {SemanticCacheManager} options.cacheManager Optional shared cache manager
+   */
+  constructor(options = {}) {
     this.bingApiEndpoint = 'https://api.bing.microsoft.com/v7.0';
     this.apiKey = process.env.BING_SEARCH_API_KEY || '';
-    this.searchCache = new Map();
-    this.cacheTimeout = 300000; // 5 minutes
+
+    this.cacheManager = options.cacheManager || new SemanticCacheManager({
+      maxCapacity: 100,
+      ttl: 300000,
+      similarityThreshold: 0.85
+    });
+  }
+
+  /**
+   * Set or update cache manager instance
+   * @param {SemanticCacheManager} manager
+   */
+  setCacheManager(manager) {
+    if (manager) {
+      this.cacheManager = manager;
+    }
   }
 
   /**
@@ -28,33 +47,38 @@ class EdgeAISearch {
       };
     }
 
-    // Check cache first
-    const cacheKey = `edge-ai:${query}`;
-    const cached = this.searchCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
-      console.log('Returning cached Edge AI search results');
-      return cached.data;
+    const trimmedQuery = query.trim();
+
+    // Check semantic LRU cache first
+    const cached = this.cacheManager.get(trimmedQuery, 'edge-ai');
+    if (cached) {
+      console.log(`[EdgeAI] Returning cached results for query: "${trimmedQuery}"`);
+      return cached;
     }
 
     try {
       // If API key is not configured, return a simulated response
       if (!this.apiKey) {
-        console.log('Edge AI Search API key not configured - using simulation mode');
-        return this.simulateEdgeSearch(query);
+        console.log('[EdgeAI] Search API key not configured - using simulation mode');
+        const simResult = this.simulateEdgeSearch(trimmedQuery);
+        this.cacheManager.set(trimmedQuery, simResult, 'edge-ai');
+        return simResult;
       }
 
       // Validate API key format (basic validation)
       if (typeof this.apiKey !== 'string' || this.apiKey.length < 10) {
-        console.warn('Invalid API key format - using simulation mode');
-        return this.simulateEdgeSearch(query);
+        console.warn('[EdgeAI] Invalid API key format - using simulation mode');
+        const simResult = this.simulateEdgeSearch(trimmedQuery);
+        this.cacheManager.set(trimmedQuery, simResult, 'edge-ai');
+        return simResult;
       }
 
-      // Make actual API call to Bing Search API (Edge's backend)
+      // Make actual API call to Bing Search API
       const response = await axios.get(
         `${this.bingApiEndpoint}/search`,
         {
           params: {
-            q: query,
+            q: trimmedQuery,
             count: 10,
             mkt: 'en-US'
           },
@@ -62,7 +86,6 @@ class EdgeAISearch {
             'Ocp-Apim-Subscription-Key': this.apiKey
           },
           timeout: 10000,
-          // Add rate limiting hint
           validateStatus: (status) => {
             if (status === 429) {
               console.warn('Rate limit exceeded for Edge AI Search');
@@ -75,25 +98,24 @@ class EdgeAISearch {
 
       const result = {
         success: true,
-        query: query,
+        query: trimmedQuery,
         results: this.formatBingResults(response.data),
         totalResults: response.data.webPages?.totalEstimatedMatches || 0,
         source: 'edge-ai-search',
         aiEnhanced: true
       };
 
-      // Cache the result
-      this.searchCache.set(cacheKey, {
-        timestamp: Date.now(),
-        data: result
-      });
+      // Cache the result in Semantic LRU Cache
+      this.cacheManager.set(trimmedQuery, result, 'edge-ai');
 
       return result;
     } catch (error) {
-      console.error('Edge AI Search error:', error.message);
+      console.error('[EdgeAI] Search error:', error.message);
       
       // Fallback to simulated search on error
-      return this.simulateEdgeSearch(query);
+      const fallbackResult = this.simulateEdgeSearch(trimmedQuery);
+      this.cacheManager.set(trimmedQuery, fallbackResult, 'edge-ai');
+      return fallbackResult;
     }
   }
 
@@ -172,7 +194,7 @@ class EdgeAISearch {
 
       return response.data.suggestionGroups?.[0]?.searchSuggestions || [];
     } catch (error) {
-      console.error('Edge AI suggestions error:', error.message);
+      console.error('[EdgeAI] Suggestions error:', error.message);
       return this.simulateSuggestions(query);
     }
   }
@@ -194,8 +216,8 @@ class EdgeAISearch {
    * Clear search cache
    */
   clearCache() {
-    this.searchCache.clear();
-    console.log('Edge AI search cache cleared');
+    this.cacheManager.clearLRUCache();
+    console.log('[EdgeAI] Search cache cleared via SemanticCacheManager');
   }
 
   /**
@@ -209,7 +231,10 @@ class EdgeAISearch {
     if (config.apiEndpoint) {
       this.bingApiEndpoint = config.apiEndpoint;
     }
-    console.log('Edge AI Search configuration updated');
+    if (config.cacheManager) {
+      this.setCacheManager(config.cacheManager);
+    }
+    console.log('[EdgeAI] Search configuration updated');
   }
 }
 

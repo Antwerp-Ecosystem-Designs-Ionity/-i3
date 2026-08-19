@@ -1,0 +1,40 @@
+{
+  "appId": "com.ionity.ei3browser",
+  "productName": "ƐÏ3 Browser & AI Cache Cleaner",
+  "directories": {
+    "output": "dist",
+    "buildResources": "assets"
+  },
+  "files": [
+    "src/**/*",
+    "assets/**/*",
+    "node_modules/**/*",
+    "package.json"
+  ],
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      },
+      {
+        "target": "portable",
+        "arch": ["x64"]
+      },
+      {
+        "target": "zip",
+        "arch": ["x64"]
+      }
+    ]
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": false,
+    "allowElevation": true,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "ƐÏ3 Browser & AI Cache Cleaner",
+    "uninstallDisplayName": "ƐÏ3 Browser & AI Cache Cleaner"
+  }
+}

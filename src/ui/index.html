@@ -16,7 +16,7 @@
                 <span class="tagline">Break the Cycle</span>
             </div>
             <div class="search-bar-container">
-                <input type="text" id="searchBar" class="search-bar" placeholder="Search with CloudSearch or Edge AI..." autocomplete="off">
+                <input type="text" id="searchBar" class="search-bar" placeholder="Search with CloudSearch, Edge AI, or AI Optimizer..." autocomplete="off">
                 <div class="search-actions">
                     <button id="cloudSearchBtn" class="search-btn" title="Search with Google CloudSearch">
                         <span class="icon">☁️</span> CloudSearch
@@ -24,9 +24,15 @@
                     <button id="edgeAIBtn" class="search-btn" title="Search with Edge AI">
                         <span class="icon">🤖</span> Edge AI
                     </button>
+                    <button id="aiOptimizeBtn" class="search-btn ai-btn" title="AI Query Optimizer">
+                        <span class="icon">✨</span> AI Optimize
+                    </button>
                 </div>
             </div>
             <div class="header-actions">
+                <button id="cacheCleanerBtn" class="action-btn highlight-btn" title="AI Cache Cleaner & LRU Manager">
+                    <span class="icon">🧹</span> Cache Cleaner
+                </button>
                 <button id="sshBtn" class="action-btn" title="SSH Backend">
                     <span class="icon">🔐</span> SSH
                 </button>
@@ -50,6 +56,22 @@
             </div>
         </nav>
 
+        <!-- AI Query Optimizer Bar (Expandable) -->
+        <div id="aiOptimizerPanel" class="ai-optimizer-bar hidden">
+            <div class="ai-panel-header">
+                <span class="ai-badge">✨ AI Query Assistant</span>
+                <span id="aiIntentTag" class="intent-tag">Procedural</span>
+            </div>
+            <div class="ai-panel-body">
+                <div class="ai-optimized-preview">
+                    <strong>Optimized Query:</strong> <span id="aiOptimizedText">...</span>
+                </div>
+                <div class="ai-suggestions-list" id="aiSuggestionsContainer">
+                    <!-- Suggestions tags populated here -->
+                </div>
+            </div>
+        </div>
+
         <!-- Main Content Area -->
         <main class="main-content">
             <div id="webview-container" class="webview-container">
@@ -64,8 +86,17 @@
             <!-- Search Results Panel -->
             <div id="searchResults" class="search-results hidden">
                 <div class="results-header">
-                    <h3>Search Results</h3>
+                    <h3>Search Results & AI Synthesis</h3>
                     <button id="closeResultsBtn" class="close-btn">✕</button>
+                </div>
+                <!-- AI Results Synthesizer Card -->
+                <div id="aiSynthesisCard" class="ai-synthesis-card hidden">
+                    <div class="synthesis-header">
+                        <span class="synthesis-icon">🧠</span>
+                        <h4>AI Semantic Summary</h4>
+                    </div>
+                    <div id="synthesisText" class="synthesis-text">Analyzing search results...</div>
+                    <div id="synthesisTakeaways" class="synthesis-takeaways"></div>
                 </div>
                 <div id="resultsContent" class="results-content">
                     <!-- Results will be populated here -->
@@ -78,6 +109,11 @@
                     <h1 class="welcome-title">ƐÏ3 Browser</h1>
                     <p class="welcome-subtitle">Break the Cycle | New AÏoT Browser for all</p>
                     <div class="features">
+                        <div class="feature">
+                            <div class="feature-icon">🧹</div>
+                            <h3>AI Cache Cleaner & LRU</h3>
+                            <p>Clear & clean semantic query caching, LRU, and Windows temp files</p>
+                        </div>
                         <div class="feature">
                             <div class="feature-icon">☁️</div>
                             <h3>CloudSearch Integration</h3>
@@ -104,6 +140,93 @@
                 </div>
             </div>
         </main>
+
+        <!-- AI Cache Cleaner & LRU Manager Modal -->
+        <div id="cacheModal" class="modal hidden">
+            <div class="modal-content modal-large">
+                <div class="modal-header">
+                    <h3>🧹 AI Cache Cleaner & Semantic LRU Manager</h3>
+                    <button class="close-btn" onclick="closeCacheModal()">✕</button>
+                </div>
+                <div class="modal-body">
+                    <!-- Cache Status Overview Cards -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="statCapacity">0 / 100</div>
+                            <div class="stat-label">LRU Cache Entries</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statMemory">0 KB</div>
+                            <div class="stat-label">Cache Memory Size</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statHitRatio">0%</div>
+                            <div class="stat-label">Cache Hit Ratio</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statSemanticHits">0</div>
+                            <div class="stat-label">Semantic Matches</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statTotalCleaned">0 KB</div>
+                            <div class="stat-label">Total Bytes Cleaned</div>
+                        </div>
+                    </div>
+
+                    <!-- AI Cache Health Advisor Bar -->
+                    <div id="cacheHealthBar" class="health-bar optimal">
+                        <strong>AI Health Status:</strong> <span id="healthStatusText">Optimal</span> — <span id="healthRecommendationText">Cache operating efficiently.</span>
+                    </div>
+
+                    <!-- Action Controls -->
+                    <div class="cache-actions-panel">
+                        <h4>Cleaning & Optimization Controls</h4>
+                        <div class="action-buttons-grid">
+                            <button id="cleanDeepBtn" class="clean-btn primary-clean">
+                                ⚡ One-Click Deep Clean
+                            </button>
+                            <button id="cleanLruBtn" class="clean-btn">
+                                🧹 Clear LRU Cache
+                            </button>
+                            <button id="cleanSemanticBtn" class="clean-btn">
+                                🧠 Clear Semantic Cache
+                            </button>
+                            <button id="cleanBrowserBtn" class="clean-btn">
+                                🌐 Clear Webview Session
+                            </button>
+                            <button id="cleanWinTempBtn" class="clean-btn">
+                                🖥️ Clean Windows System Temp
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Cached Query Inspector Table -->
+                    <div class="cache-inspector">
+                        <h4>Cached Query Inspector</h4>
+                        <div class="table-container">
+                            <table class="cache-table">
+                                <thead>
+                                    <tr>
+                                        <th>Query</th>
+                                        <th>Source</th>
+                                        <th>Size</th>
+                                        <th>Hits</th>
+                                        <th>Age</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cacheTableBody">
+                                    <tr>
+                                        <td colspan="5" style="text-align:center; color: #888;">No cached queries yet.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="cacheStatusMessage" class="status-message"></div>
+                </div>
+            </div>
+        </div>
 
         <!-- SSH Modal -->
         <div id="sshModal" class="modal hidden">

@@ -1,19 +1,24 @@
 {
   "name": "ei3-browser",
   "version": "1.0.0",
-  "description": "ƐÏ3 - Break the Cycle | New AÏoT Browser for all with SSH backing and CloudSearch integration",
+  "description": "ƐÏ3 - Break the Cycle | New AÏoT Browser for all with AI Semantic LRU Cache Cleaner & Windows Installer",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
     "build": "electron-builder",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build:win": "electron-builder --win",
+    "build:win-installer": "node scripts/build-windows-installer.js",
+    "test": "node tests/semantic-cache.test.js"
   },
   "keywords": [
     "browser",
     "electron",
     "cloudsearch",
     "ai-search",
+    "semantic-cache",
+    "lru-cache",
+    "windows-cleaner",
     "ssh",
     "ionity"
   ],
@@ -29,12 +34,28 @@
   },
   "build": {
     "appId": "com.ionity.ei3browser",
-    "productName": "ƐÏ3 Browser",
+    "productName": "ƐÏ3 Browser & AI Cache Cleaner",
     "directories": {
       "output": "dist"
     },
+    "win": {
+      "target": [
+        "nsis",
+        "portable",
+        "zip"
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "ƐÏ3 Browser & AI Cache Cleaner"
+    },
     "files": [
       "src/**/*",
+      "assets/**/*",
       "node_modules/**/*",
       "package.json"
     ]

@@ -14,10 +14,22 @@ const searchResults = document.getElementById('searchResults');
 const resultsContent = document.getElementById('resultsContent');
 const sshModal = document.getElementById('sshModal');
 const infoModal = document.getElementById('infoModal');
+const cacheModal = document.getElementById('cacheModal');
+
+// AI Panel Elements
+const aiOptimizerPanel = document.getElementById('aiOptimizerPanel');
+const aiOptimizedText = document.getElementById('aiOptimizedText');
+const aiIntentTag = document.getElementById('aiIntentTag');
+const aiSuggestionsContainer = document.getElementById('aiSuggestionsContainer');
+const aiSynthesisCard = document.getElementById('aiSynthesisCard');
+const synthesisText = document.getElementById('synthesisText');
+const synthesisTakeaways = document.getElementById('synthesisTakeaways');
 
 // Buttons
 const cloudSearchBtn = document.getElementById('cloudSearchBtn');
 const edgeAIBtn = document.getElementById('edgeAIBtn');
+const aiOptimizeBtn = document.getElementById('aiOptimizeBtn');
+const cacheCleanerBtn = document.getElementById('cacheCleanerBtn');
 const backBtn = document.getElementById('backBtn');
 const forwardBtn = document.getElementById('forwardBtn');
 const refreshBtn = document.getElementById('refreshBtn');
@@ -26,6 +38,13 @@ const sshBtn = document.getElementById('sshBtn');
 const infoBtn = document.getElementById('infoBtn');
 const closeResultsBtn = document.getElementById('closeResultsBtn');
 const sshConnectBtn = document.getElementById('sshConnectBtn');
+
+// Cache Modal Action Buttons
+const cleanDeepBtn = document.getElementById('cleanDeepBtn');
+const cleanLruBtn = document.getElementById('cleanLruBtn');
+const cleanSemanticBtn = document.getElementById('cleanSemanticBtn');
+const cleanBrowserBtn = document.getElementById('cleanBrowserBtn');
+const cleanWinTempBtn = document.getElementById('cleanWinTempBtn');
 
 // State
 let currentUrl = '';
@@ -45,7 +64,7 @@ function setupEventListeners() {
         if (e.key === 'Enter') {
             const query = searchBar.value.trim();
             if (query) {
-                performEdgeAISearch(query); // Default to Edge AI
+                performEdgeAISearch(query);
             }
         }
     });
@@ -63,6 +82,19 @@ function setupEventListeners() {
             performEdgeAISearch(query);
         }
     });
+
+    // AI Query Optimizer
+    aiOptimizeBtn.addEventListener('click', handleAIOptimize);
+
+    // Cache Cleaner Modal
+    cacheCleanerBtn.addEventListener('click', openCacheModal);
+
+    // Cache Cleaning Action Triggers
+    cleanDeepBtn.addEventListener('click', handleDeepClean);
+    cleanLruBtn.addEventListener('click', handleClearLRU);
+    cleanSemanticBtn.addEventListener('click', handleClearSemantic);
+    cleanBrowserBtn.addEventListener('click', handleClearBrowserSession);
+    cleanWinTempBtn.addEventListener('click', handleCleanWindowsTemp);
 
     // URL navigation
     urlBar.addEventListener('keypress', (e) => {
@@ -132,13 +164,10 @@ function navigateToUrl() {
         return;
     }
 
-    // If it doesn't start with http:// or https://, add https://
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        // Check if it looks like a domain
         if (url.includes('.') || url === 'localhost') {
             url = 'https://' + url;
         } else {
-            // Treat as search query
             performEdgeAISearch(url);
             return;
         }
@@ -176,12 +205,43 @@ async function performEdgeAISearch(query) {
     }
 }
 
-// Display Results
-function displaySearchResults(result, source) {
+// AI Query Optimizer Handler
+async function handleAIOptimize() {
+    const rawQuery = searchBar.value.trim();
+    if (!rawQuery) return;
+
+    try {
+        const optimized = await window.ei3API.optimizeAIQuery(rawQuery);
+        if (optimized) {
+            aiOptimizedText.textContent = optimized.optimizedQuery;
+            aiIntentTag.textContent = optimized.intent;
+
+            aiSuggestionsContainer.innerHTML = '';
+            (optimized.suggestions || []).forEach(sugg => {
+                const chip = document.createElement('span');
+                chip.className = 'suggestion-chip';
+                chip.textContent = sugg;
+                chip.addEventListener('click', () => {
+                    searchBar.value = sugg;
+                    performEdgeAISearch(sugg);
+                });
+                aiSuggestionsContainer.appendChild(chip);
+            });
+
+            aiOptimizerPanel.classList.remove('hidden');
+        }
+    } catch (err) {
+        console.error('Error optimizing AI query:', err);
+    }
+}
+
+// Display Search Results & AI Synthesis
+async function displaySearchResults(result, source) {
     resultsContent.innerHTML = '';
     
     if (result.error) {
         displayError(source, result.error);
+        aiSynthesisCard.classList.add('hidden');
         return;
     }
 
@@ -192,10 +252,29 @@ function displaySearchResults(result, source) {
                 <div class="result-snippet">Try a different search query.</div>
             </div>
         `;
+        aiSynthesisCard.classList.add('hidden');
         return;
     }
 
-    // Display source info
+    // AI Results Synthesis
+    try {
+        const synthesis = await window.ei3API.synthesizeAIResults(result.query, result.results);
+        if (synthesis && synthesis.summary) {
+            synthesisText.textContent = synthesis.summary;
+            synthesisTakeaways.innerHTML = '';
+            (synthesis.keyTakeaways || []).forEach(takeaway => {
+                const item = document.createElement('div');
+                item.className = 'takeaway-item';
+                item.textContent = takeaway;
+                synthesisTakeaways.appendChild(item);
+            });
+            aiSynthesisCard.classList.remove('hidden');
+        }
+    } catch (e) {
+        aiSynthesisCard.classList.add('hidden');
+    }
+
+    // Source Info Header
     const sourceInfo = document.createElement('div');
     sourceInfo.style.padding = '10px';
     sourceInfo.style.marginBottom = '15px';
@@ -205,11 +284,12 @@ function displaySearchResults(result, source) {
         <strong>Source:</strong> ${source}<br>
         <strong>Query:</strong> ${result.query}<br>
         <strong>Results:</strong> ${result.results.length}
+        ${result.semanticallyMatched ? `<br><span style="color: #a78bfa;">⚡ Semantic Cache Hit (${(result.similarityScore * 100).toFixed(0)}% match)</span>` : ''}
         ${result.message ? `<br><small style="color: #888;">${result.message}</small>` : ''}
     `;
     resultsContent.appendChild(sourceInfo);
 
-    // Display results
+    // Result List
     result.results.forEach(item => {
         const resultItem = document.createElement('div');
         resultItem.className = 'result-item';
@@ -235,6 +315,112 @@ function navigateToResult(url) {
     urlBar.value = url;
     navigateToUrl();
     closeSearchResults();
+}
+
+// AI Cache Cleaner Modal Functions
+async function openCacheModal() {
+    cacheModal.classList.remove('hidden');
+    await refreshCacheStats();
+}
+
+function closeCacheModal() {
+    cacheModal.classList.add('hidden');
+}
+
+async function refreshCacheStats() {
+    try {
+        const response = await window.ei3API.getCacheStats();
+        if (response && response.success) {
+            updateCacheModalStats(response.stats, response.health);
+        }
+    } catch (err) {
+        console.error('Error getting cache stats:', err);
+    }
+}
+
+function updateCacheModalStats(stats, health) {
+    if (!stats) return;
+
+    document.getElementById('statCapacity').textContent = `${stats.currentSize} / ${stats.maxCapacity}`;
+    document.getElementById('statMemory').textContent = stats.formattedMemorySize || '0 KB';
+    document.getElementById('statHitRatio').textContent = `${stats.hitRatioPercentage}%`;
+    document.getElementById('statSemanticHits').textContent = stats.semanticHits || 0;
+    document.getElementById('statTotalCleaned').textContent = stats.formattedTotalBytesCleaned || '0 KB';
+
+    if (health) {
+        const healthBar = document.getElementById('cacheHealthBar');
+        healthBar.className = `health-bar ${health.status || 'optimal'}`;
+        document.getElementById('healthStatusText').textContent = (health.status || 'Optimal').toUpperCase();
+        document.getElementById('healthRecommendationText').textContent = health.recommendation || 'Operating efficiently.';
+    }
+
+    // Populate Query Table
+    const tbody = document.getElementById('cacheTableBody');
+    tbody.innerHTML = '';
+
+    if (!stats.cachedQueries || stats.cachedQueries.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: #888;">No cached queries yet.</td></tr>';
+        return;
+    }
+
+    stats.cachedQueries.forEach(item => {
+        const tr = document.createElement('tr');
+        const ageSec = Math.round((Date.now() - item.timestamp) / 1000);
+        tr.innerHTML = `
+            <td style="font-weight:600; color:#00d4ff;">${item.query}</td>
+            <td>${item.source}</td>
+            <td>${item.sizeBytes} B</td>
+            <td>${item.hitCount}</td>
+            <td>${ageSec}s ago</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// Cleaning Handlers
+async function handleDeepClean() {
+    showCacheStatus('Running One-Click Deep Clean...', 'info');
+    const res = await window.ei3API.deepCleanCache();
+    if (res && res.success) {
+        showCacheStatus(`Deep Clean Complete! Freed ${res.summary.formattedBytesFreed}.`, 'success');
+        await refreshCacheStats();
+    } else {
+        showCacheStatus('Deep Clean failed.', 'error');
+    }
+}
+
+async function handleClearLRU() {
+    const res = await window.ei3API.clearLRUCache();
+    showCacheStatus(`LRU Cache Cleared (${res.entriesCleared} items removed).`, 'success');
+    await refreshCacheStats();
+}
+
+async function handleClearSemantic() {
+    const res = await window.ei3API.clearSemanticCache();
+    showCacheStatus(`Semantic Query Cache Cleared.`, 'success');
+    await refreshCacheStats();
+}
+
+async function handleClearBrowserSession() {
+    const res = await window.ei3API.clearBrowserCache();
+    showCacheStatus(`Browser Session & Webview Storage Cleared.`, 'success');
+    await refreshCacheStats();
+}
+
+async function handleCleanWindowsTemp() {
+    const res = await window.ei3API.cleanWindowsTempCache();
+    if (res && res.success) {
+        showCacheStatus(`Windows System Temp Cache Cleaned! Freed ${res.formattedBytesFreed}.`, 'success');
+        await refreshCacheStats();
+    } else {
+        showCacheStatus('Windows Temp Clean failed.', 'error');
+    }
+}
+
+function showCacheStatus(msg, type) {
+    const el = document.getElementById('cacheStatusMessage');
+    el.className = `status-message ${type}`;
+    el.textContent = msg;
 }
 
 // UI Controls
@@ -323,10 +509,11 @@ async function openInfoModal() {
                 <hr style="border: 1px solid #2a2a3e; margin: 20px 0;">
                 <h4 style="color: #00d4ff; margin-bottom: 15px;">Features</h4>
                 <ul style="list-style: none; padding: 0;">
+                    <li>✓ AI Semantic Query Caching & LRU Manager</li>
+                    <li>✓ One-Click Windows System & AI Temp Cleaner</li>
                     <li>✓ Google CloudSearch Integration</li>
                     <li>✓ Microsoft Edge AI Search</li>
                     <li>✓ SSH Backend Support</li>
-                    <li>✓ Sleek Modern Interface</li>
                     <li>✓ Chromium-based Engine</li>
                 </ul>
                 <hr style="border: 1px solid #2a2a3e; margin: 20px 0;">
@@ -361,4 +548,5 @@ async function loadBrowserInfo() {
 // Make functions globally accessible for inline event handlers
 window.closeSSHModal = closeSSHModal;
 window.closeInfoModal = closeInfoModal;
+window.closeCacheModal = closeCacheModal;
 window.navigateToResult = navigateToResult;
