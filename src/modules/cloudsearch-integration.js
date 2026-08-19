@@ -6,13 +6,32 @@
  */
 
 const axios = require('axios');
+const SemanticCacheManager = require('./semantic-cache-manager');
 
 class CloudSearchIntegration {
-  constructor() {
+  /**
+   * @param {Object} options Configuration options
+   * @param {SemanticCacheManager} options.cacheManager Optional shared cache manager
+   */
+  constructor(options = {}) {
     this.apiEndpoint = 'https://cloudsearch.googleapis.com/v1';
     this.apiKey = process.env.GOOGLE_CLOUDSEARCH_API_KEY || '';
-    this.searchCache = new Map();
-    this.cacheTimeout = 300000; // 5 minutes
+
+    this.cacheManager = options.cacheManager || new SemanticCacheManager({
+      maxCapacity: 100,
+      ttl: 300000,
+      similarityThreshold: 0.85
+    });
+  }
+
+  /**
+   * Set or update cache manager instance
+   * @param {SemanticCacheManager} manager
+   */
+  setCacheManager(manager) {
+    if (manager) {
+      this.cacheManager = manager;
+    }
   }
 
   /**
@@ -28,32 +47,37 @@ class CloudSearchIntegration {
       };
     }
 
-    // Check cache first
-    const cacheKey = `cloudsearch:${query}`;
-    const cached = this.searchCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
-      console.log('Returning cached CloudSearch results');
-      return cached.data;
+    const trimmedQuery = query.trim();
+
+    // Check semantic LRU cache first
+    const cached = this.cacheManager.get(trimmedQuery, 'cloudsearch');
+    if (cached) {
+      console.log(`[CloudSearch] Returning cached results for query: "${trimmedQuery}"`);
+      return cached;
     }
 
     try {
       // If API key is not configured, return a simulated response
       if (!this.apiKey) {
-        console.log('CloudSearch API key not configured - using simulation mode');
-        return this.simulateSearch(query);
+        console.log('[CloudSearch] API key not configured - using simulation mode');
+        const simResult = this.simulateSearch(trimmedQuery);
+        this.cacheManager.set(trimmedQuery, simResult, 'cloudsearch');
+        return simResult;
       }
 
       // Validate API key format (basic validation)
       if (typeof this.apiKey !== 'string' || this.apiKey.length < 10) {
-        console.warn('Invalid API key format - using simulation mode');
-        return this.simulateSearch(query);
+        console.warn('[CloudSearch] Invalid API key format - using simulation mode');
+        const simResult = this.simulateSearch(trimmedQuery);
+        this.cacheManager.set(trimmedQuery, simResult, 'cloudsearch');
+        return simResult;
       }
 
       // Make actual API call to CloudSearch
       const response = await axios.post(
         `${this.apiEndpoint}/query/search`,
         {
-          query: query,
+          query: trimmedQuery,
           requestOptions: {
             searchApplicationId: process.env.CLOUDSEARCH_APP_ID || 'default'
           }
@@ -64,7 +88,6 @@ class CloudSearchIntegration {
             'Content-Type': 'application/json'
           },
           timeout: 10000,
-          // Add rate limiting hint
           validateStatus: (status) => {
             if (status === 429) {
               console.warn('Rate limit exceeded for CloudSearch');
@@ -77,24 +100,23 @@ class CloudSearchIntegration {
 
       const result = {
         success: true,
-        query: query,
+        query: trimmedQuery,
         results: response.data.results || [],
         totalResults: response.data.resultCountExact || 0,
         source: 'google-cloudsearch'
       };
 
-      // Cache the result
-      this.searchCache.set(cacheKey, {
-        timestamp: Date.now(),
-        data: result
-      });
+      // Cache the result in Semantic LRU Cache
+      this.cacheManager.set(trimmedQuery, result, 'cloudsearch');
 
       return result;
     } catch (error) {
-      console.error('CloudSearch API error:', error.message);
+      console.error('[CloudSearch] API error:', error.message);
       
       // Fallback to simulated search on error
-      return this.simulateSearch(query);
+      const fallbackResult = this.simulateSearch(trimmedQuery);
+      this.cacheManager.set(trimmedQuery, fallbackResult, 'cloudsearch');
+      return fallbackResult;
     }
   }
 
@@ -125,8 +147,8 @@ class CloudSearchIntegration {
    * Clear search cache
    */
   clearCache() {
-    this.searchCache.clear();
-    console.log('CloudSearch cache cleared');
+    this.cacheManager.clearLRUCache();
+    console.log('[CloudSearch] Cache cleared via SemanticCacheManager');
   }
 
   /**
@@ -140,7 +162,10 @@ class CloudSearchIntegration {
     if (config.apiEndpoint) {
       this.apiEndpoint = config.apiEndpoint;
     }
-    console.log('CloudSearch configuration updated');
+    if (config.cacheManager) {
+      this.setCacheManager(config.cacheManager);
+    }
+    console.log('[CloudSearch] Configuration updated');
   }
 }
 

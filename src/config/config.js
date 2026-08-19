@@ -14,6 +14,26 @@ module.exports = {
     defaultSearchEngine: 'edge-ai' // 'edge-ai' or 'cloudsearch'
   },
 
+  // Semantic Query Caching & LRU Configuration
+  semanticCache: {
+    enabled: true,
+    maxCapacity: 100, // Maximum LRU cache items
+    ttl: 300000, // 5 minutes in ms
+    similarityThreshold: 0.85, // 85% similarity threshold for semantic matches
+    autoCleanOnLaunch: false,
+    windowsTempCleanEnabled: true
+  },
+
+  // Additional AI Features Configuration
+  aiFeatures: {
+    enabled: true,
+    queryOptimizer: true,
+    resultsSynthesizer: true,
+    neuralRecall: true,
+    cacheAdvisor: true,
+    maxRecallCapacity: 50
+  },
+
   // Google CloudSearch Configuration
   cloudSearch: {
     enabled: true,
